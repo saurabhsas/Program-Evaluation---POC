@@ -57,9 +57,58 @@ if st.button("Generate Insights"):
 
     # KPIs
     kpis = get_kpis(filtered)
+# ---------------- KPI CARDS ----------------
+    st.markdown("### 📊 Key Metrics")
+
+    kpi_icons = {
+        "Medical Cost": "💰",
+        "Pharmacy Cost": "💊",
+        "Total Cost": "💵",
+        "MR Allowed": "📊",
+        "Avoidable ED": "⚠️",
+        "Avoidable IP": "🚨",
+        "ED Visits": "🏥",
+        "IP Visits": "🛏️",
+        "Professional": "👨‍⚕️",
+        "Outpatient": "🏥",
+        "Inpatient": "🛌",
+        "Others": "📦"
+    }
+
+    def render_kpi_card(title, value, icon):
+
+        return f"""
+        <div style="
+            background-color:#ffffff;
+            padding:15px;
+            border-radius:12px;
+            box-shadow:0px 2px 8px rgba(0,0,0,0.08);
+            text-align:center;
+            margin-bottom:10px;
+        ">
+            <div style="font-size:14px; color:#6c757d;">
+                {icon} {title}
+            </div>
+            <div style="
+                font-size:20px;
+                font-weight:600;
+                color:#2c3e50;
+                margin-top:5px;
+            ">
+                {value}
+            </div>
+        </div>
+        """
+
+    # Display in grid
     cols = st.columns(4)
+
     for i, (k, v) in enumerate(kpis.items()):
-        cols[i % 4].metric(k, v)
+        with cols[i % 4]:
+            st.markdown(
+                render_kpi_card(k, v, kpi_icons.get(k, "📌")),
+                unsafe_allow_html=True
+            )
 
     # Chart
     fig = build_chart(result, selected_prompt)
