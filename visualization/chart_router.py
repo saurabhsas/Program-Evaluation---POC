@@ -18,10 +18,10 @@ def build_chart(df, prompt):
 
         x_col = cols[0]  # MEMBERID / Dimension
 
-        # 🔥 Ensure string (prevents 11B formatting)
+        # Ensure string (prevents 1B/2B issue)
         df[x_col] = df[x_col].astype(str)
 
-        # ---- Multi-metric (Utilization) ----
+        # Multi-metric (Utilization)
         if "ED Visits" in cols and "IP Visits" in cols:
 
             df_melt = df.melt(
@@ -40,7 +40,7 @@ def build_chart(df, prompt):
                 title=prompt
             )
 
-        # ---- Single metric (Cost) ----
+        # Single metric (Cost)
         else:
             fig = px.bar(
                 df,
@@ -49,7 +49,26 @@ def build_chart(df, prompt):
                 title=prompt
             )
 
-        # 🔥 CRITICAL FIX → force categorical axis
+        fig.update_xaxes(type="category")
+
+        return fig
+
+    # --------------------------------------------------
+    # 📊 PARETO (SEPARATE HANDLING)
+    # --------------------------------------------------
+    if prompt == "Pareto Cost Analysis (Top 20%)":
+
+        # Ensure MEMBERID shown correctly
+        df["Dimension"] = df["Dimension"].astype(str)
+
+        fig = px.bar(
+            df,
+            x="Dimension",
+            y="Value",
+            title=prompt
+        )
+
+        # 🔥 Critical fix → prevent 1B/2B formatting
         fig.update_xaxes(type="category")
 
         return fig
@@ -64,8 +83,7 @@ def build_chart(df, prompt):
         "Total Cost by Gender",
         "Cost by Product",
         "Cost by Product Type",
-        "County-wise PMPM",
-        "Pareto Cost Analysis (Top 20%)"
+        "County-wise PMPM"
     ]:
         return px.bar(
             df,
