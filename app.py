@@ -72,6 +72,7 @@ if st.button("Generate Insights"):
     st.markdown("### 📊 Key Metrics")
 
     kpi_icons = {
+        "Members": "👥",
         "Medical Cost": "💰",
         "Pharmacy Cost": "💊",
         "Total Cost": "💵",
