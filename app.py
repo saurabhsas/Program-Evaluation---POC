@@ -17,19 +17,28 @@ st.set_page_config(page_title=os.getenv("APP_TITLE"), layout="wide")
 st.title("🏥 " + os.getenv("APP_TITLE"))
 
 # ---------------------------
-# 🔥 AUTO-DETECT MEMBER LIST
+# 🔥 AUTO-DETECT MEMBER LIST (SAFEGUARD VERSION)
 # ---------------------------
 import pandas as pd
 import os
 
 member_ids = None
-
 member_file = os.path.join("data", "member_list.csv")
 
 if os.path.exists(member_file):
+
     member_df = pd.read_csv(member_file)
+    member_df.columns = member_df.columns.str.upper()
+
+    # ✅ SAFEGUARD CHECK
+    if "MEMBERID" not in member_df.columns:
+        st.error("member_list.csv must contain a 'MEMBERID' column")
+        st.stop()
+
     member_ids = set(member_df["MEMBERID"].dropna().unique())
-    st.info("📌 Cohort mode enabled (member_list.csv detected)")
+
+    st.info(f"📌 Cohort mode enabled ({len(member_ids):,} members loaded)")
+
 else:
     st.info("📊 Full population mode (no member_list.csv found)")
 
