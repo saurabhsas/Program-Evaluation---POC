@@ -57,6 +57,7 @@ def run_prompt(prompt, df):
 
     if prompt == "Top 10 High Cost Members":
         res = df.groupby("MEMBERID")["PAID"].sum().nlargest(10).reset_index()
+        res["MEMBERID"] = res["MEMBERID"].astype(str)
         return res.rename(columns={"MEMBERID": "Dimension", "PAID": "Value"})
 
     # =========================================================
@@ -66,6 +67,9 @@ def run_prompt(prompt, df):
     if prompt == "High Utilization Members":
         res = df.groupby("MEMBERID")[["EDVISITS", "IPVISITS"]].sum().reset_index()
         res = res.sort_values("EDVISITS", ascending=False).head(10)
+
+        res["MEMBERID"] = res["MEMBERID"].astype(str)
+
         return res.rename(columns={
             "EDVISITS": "ED Visits",
             "IPVISITS": "IP Visits"
@@ -83,33 +87,42 @@ def run_prompt(prompt, df):
             "AVOIDED": "Avoidable ED",
             "AVOIDIP": "Avoidable IP"
         })
+
         return res
 
     if prompt == "Avoidable Cost by County":
-        res = df.groupby("COUNTY")[["AVOIDED", "AVOIDIP"]].sum().reset_index()
-        return res.rename(columns={
-            "AVOIDED": "Avoidable ED",
-            "AVOIDIP": "Avoidable IP"
-        })
+        return df.groupby("COUNTY")[["AVOIDED", "AVOIDIP"]].sum().reset_index() \
+            .rename(columns={
+                "AVOIDED": "Avoidable ED",
+                "AVOIDIP": "Avoidable IP"
+            })
 
     # =========================================================
-    # 📦 PRODUCT
+    # 📦 PRODUCT (FIXED → FSPRODUCT)
     # =========================================================
 
     if prompt == "Cost by Product":
-        return df.groupby("PRODUCTDESCR")["PAID"].sum().reset_index() \
-            .rename(columns={"PRODUCTDESCR": "Dimension", "PAID": "Value"})
+        return df.groupby("FSPRODUCT")["PAID"].sum().reset_index() \
+            .rename(columns={"FSPRODUCT": "Dimension", "PAID": "Value"}) \
+            .sort_values("Value", ascending=False)
 
     if prompt == "Cost by Product Type":
         return df.groupby("PRODUCTTYPEDESCR")["PAID"].sum().reset_index() \
-            .rename(columns={"PRODUCTTYPEDESCR": "Dimension", "PAID": "Value"})
+            .rename(columns={"PRODUCTTYPEDESCR": "Dimension", "PAID": "Value"}) \
+            .sort_values("Value", ascending=False)
 
     if prompt == "Product-wise Utilization":
-        return df.groupby("PRODUCTDESCR")[["EDVISITS", "IPVISITS"]].sum().reset_index() \
-            .rename(columns={
-                "EDVISITS": "ED Visits",
-                "IPVISITS": "IP Visits"
-            })
+
+        res = df.groupby("FSPRODUCT")[["EDVISITS", "IPVISITS"]].sum().reset_index()
+
+        res = res.rename(columns={
+            "EDVISITS": "ED Visits",
+            "IPVISITS": "IP Visits"
+        })
+
+        res = res.sort_values("ED Visits", ascending=False)
+
+        return res
 
     # =========================================================
     # 📊 PMPM
@@ -122,20 +135,23 @@ def run_prompt(prompt, df):
         }).reset_index()
 
         g["Value"] = g["PAID"] / g["MEMBERID"]
-        return g.rename(columns={"COUNTY": "Dimension"})
+
+        return g.rename(columns={"COUNTY": "Dimension"}) \
+            .sort_values("Value", ascending=False)
 
     # =========================================================
-    # 📊 PARETO
+    # 📊 PARETO (TOP 5%)
     # =========================================================
 
-    if prompt == "Pareto Cost Analysis (Top 5%)":
-        
+    if prompt == "Pareto Cost Analysis (Top 20%)":
+
         g = df.groupby("MEMBERID")["PAID"].sum().sort_values(ascending=False)
 
-        # Top 5%
-        top_n = max(int(0.05 * len(g)), 1)   # ensure at least 1 row
+        top_n = max(int(0.05 * len(g)), 1)
 
         top_5 = g.head(top_n).reset_index()
+
+        top_5["MEMBERID"] = top_5["MEMBERID"].astype(str)
 
         return top_5.rename(columns={
             "MEMBERID": "Dimension",
