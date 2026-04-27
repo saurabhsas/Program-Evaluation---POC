@@ -9,6 +9,7 @@ def fmt_number(x):
 def get_kpis(df):
 
     return {
+        "Members": fmt_number(df["MEMBERID"].nunique()),
         "Medical Cost": fmt_currency(df["MEDICAL_PAID"].sum()),
         "Pharmacy Cost": fmt_currency(df["RX_PAID"].sum()),
         "Total Cost": fmt_currency(df["PAID"].sum()),
