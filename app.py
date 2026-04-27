@@ -16,17 +16,22 @@ load_dotenv()
 st.set_page_config(page_title=os.getenv("APP_TITLE"), layout="wide")
 st.title("🏥 " + os.getenv("APP_TITLE"))
 
+# ---------------------------
+# 🔥 AUTO-DETECT MEMBER LIST
+# ---------------------------
 import pandas as pd
 import os
 
 member_ids = None
 
-member_path = os.getenv("MEMBER_FILTER_PATH")
+member_file = os.path.join("data", "member_list.csv")
 
-if member_path and os.path.exists(member_path):
-    member_df = pd.read_csv(member_path)
+if os.path.exists(member_file):
+    member_df = pd.read_csv(member_file)
     member_ids = set(member_df["MEMBERID"].dropna().unique())
-    st.info("📌 Cohort filter applied (Member subset)")
+    st.info("📌 Cohort mode enabled (member_list.csv detected)")
+else:
+    st.info("📊 Full population mode (no member_list.csv found)")
 
 df = load_data(member_ids)
 
