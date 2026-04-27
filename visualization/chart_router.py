@@ -1,6 +1,4 @@
 import plotly.express as px
-import pandas as pd
-
 
 def build_chart(df, prompt):
 
@@ -12,43 +10,48 @@ def build_chart(df, prompt):
 
     cols = df.columns.tolist()
 
-    # ---------------------------------------
-    # 📊 CATEGORY UTILIZATION → BAR (SAFE MELT)
-    # ---------------------------------------
-    if prompt in [
-        "Utilization by Age Category",
-        "Utilization by Gender",
-        "High Utilization Members"
-    ]:
+    # --------------------------------------------------
+    # 🧑‍🤝‍🧑 MEMBER-LEVEL CHARTS (FIXED LABEL ISSUE)
+    # --------------------------------------------------
+    if prompt in ["Top 10 High Cost Members", "High Utilization Members"]:
 
-        # Detect correct X-axis column
-        if "AGE_CATEGORY" in df.columns:
-            x_col = "AGE_CATEGORY"
-        elif "GENDER" in df.columns:
-            x_col = "GENDER"
-        elif "MEMBERID" in df.columns:
-            x_col = "MEMBERID"
+        x_col = cols[0]  # MEMBERID / Dimension
+
+        # 🔥 Ensure MEMBERID is string
+        df[x_col] = df[x_col].astype(str)
+
+        # ---- High Utilization (multi-metric) ----
+        if "ED Visits" in cols and "IP Visits" in cols:
+
+            df_melt = df.melt(
+                id_vars=x_col,
+                value_vars=["ED Visits", "IP Visits"],
+                var_name="Metric",
+                value_name="Value"
+            )
+
+            fig = px.bar(
+                df_melt,
+                x=x_col,
+                y="Value",
+                color="Metric",
+                barmode="group",
+                title=prompt
+            )
+
+        # ---- High Cost (single metric) ----
         else:
-            # fallback: first non-numeric column
-            non_numeric = df.select_dtypes(exclude="number").columns
-            x_col = non_numeric[0] if len(non_numeric) > 0 else cols[0]
+            fig = px.bar(
+                df,
+                x=x_col,
+                y="Value",
+                title=prompt
+            )
 
-        # Convert to long format (prevents Plotly error)
-        df_melt = df.melt(
-            id_vars=x_col,
-            value_vars=["ED Visits", "IP Visits"],
-            var_name="Metric",
-            value_name="Value"
-        )
+        # 🔥 CRITICAL FIX → force categorical axis (no 11B formatting)
+        fig.update_xaxes(type="category")
 
-        return px.bar(
-            df_melt,
-            x=x_col,
-            y="Value",
-            color="Metric",
-            barmode="group",
-            title=prompt
-        )
+        return fig
 
     # ---------------------------------------
     # 💰 COST CATEGORY → BAR
@@ -58,8 +61,6 @@ def build_chart(df, prompt):
         "Total Cost by County",
         "Total Cost by Age Category",
         "Total Cost by Gender",
-        "Top 10 High Cost Members",
-        "Cost Distribution Across Members",
         "Cost by Product",
         "Cost by Product Type",
         "County-wise PMPM",
@@ -118,51 +119,26 @@ def build_chart(df, prompt):
         )
 
     # ---------------------------------------
-    # 📈 GENERIC TIME SERIES (SAFE)
+    # 📈 GENERIC TIME SERIES
     # ---------------------------------------
     if "MONTH" in cols:
-
-        numeric_cols = df.select_dtypes(include="number").columns.tolist()
-
-        if len(numeric_cols) == 0:
-            return px.bar(title="No numeric data to plot")
-
-        # Melt to avoid wide-form issues
-        df_melt = df.melt(
-            id_vars="MONTH",
-            value_vars=numeric_cols,
-            var_name="Metric",
-            value_name="Value"
-        )
+        y_cols = [c for c in cols if c != "MONTH"]
 
         return px.line(
-            df_melt,
+            df,
             x="MONTH",
-            y="Value",
-            color="Metric",
+            y=y_cols,
             markers=True,
             title=prompt
         )
 
     # ---------------------------------------
-    # 📊 DIMENSION + VALUE (DEFAULT)
+    # 📊 DEFAULT CATEGORY
     # ---------------------------------------
     if "Dimension" in cols and "Value" in cols:
         return px.bar(df, x="Dimension", y="Value", title=prompt)
 
     # ---------------------------------------
-    # 📊 METRIC TABLE
-    # ---------------------------------------
-    if "Metric" in cols and "Value" in cols:
-        return px.bar(df, x="Metric", y="Value", title=prompt)
-
-    # ---------------------------------------
     # 🛑 FINAL FALLBACK
     # ---------------------------------------
-    numeric_cols = df.select_dtypes(include="number").columns.tolist()
-
-    if len(numeric_cols) > 0:
-        x_col = df.select_dtypes(exclude="number").columns[0]
-        return px.bar(df, x=x_col, y=numeric_cols)
-
     return px.bar(title="Unsupported chart format")
