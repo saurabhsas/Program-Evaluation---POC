@@ -26,8 +26,9 @@ member_path = os.getenv("MEMBER_FILTER_PATH")
 if member_path and os.path.exists(member_path):
     member_df = pd.read_csv(member_path)
     member_ids = set(member_df["MEMBERID"].dropna().unique())
+    st.info("📌 Cohort filter applied (Member subset)")
 
-df = load_data()
+df = load_data(member_ids)
 
 # ---------------- FILTERS ----------------
 with st.sidebar:
@@ -130,7 +131,7 @@ if st.button("Generate Insights"):
     st.dataframe(format_df(result.copy()), use_container_width=True)
 
     # Insights
-    insights = generate_insights(selected_prompt, result)
+    insights = generate_insights(selected_prompt, result, df)
     st.subheader("🧠 Executive Insights")
 
     insight_html = """
