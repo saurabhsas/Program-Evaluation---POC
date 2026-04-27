@@ -1,5 +1,6 @@
 import plotly.express as px
 
+
 def build_chart(df, prompt):
 
     # ---------------------------------------
@@ -11,16 +12,16 @@ def build_chart(df, prompt):
     cols = df.columns.tolist()
 
     # --------------------------------------------------
-    # 🧑‍🤝‍🧑 MEMBER-LEVEL CHARTS (FIXED LABEL ISSUE)
+    # 🧑‍🤝‍🧑 MEMBER-LEVEL CHARTS (FIX LABEL ISSUE)
     # --------------------------------------------------
     if prompt in ["Top 10 High Cost Members", "High Utilization Members"]:
 
         x_col = cols[0]  # MEMBERID / Dimension
 
-        # 🔥 Ensure MEMBERID is string
+        # 🔥 Ensure string (prevents 11B formatting)
         df[x_col] = df[x_col].astype(str)
 
-        # ---- High Utilization (multi-metric) ----
+        # ---- Multi-metric (Utilization) ----
         if "ED Visits" in cols and "IP Visits" in cols:
 
             df_melt = df.melt(
@@ -39,7 +40,7 @@ def build_chart(df, prompt):
                 title=prompt
             )
 
-        # ---- High Cost (single metric) ----
+        # ---- Single metric (Cost) ----
         else:
             fig = px.bar(
                 df,
@@ -48,7 +49,7 @@ def build_chart(df, prompt):
                 title=prompt
             )
 
-        # 🔥 CRITICAL FIX → force categorical axis (no 11B formatting)
+        # 🔥 CRITICAL FIX → force categorical axis
         fig.update_xaxes(type="category")
 
         return fig
@@ -119,9 +120,33 @@ def build_chart(df, prompt):
         )
 
     # ---------------------------------------
+    # 📦 PRODUCT UTILIZATION (FSPRODUCT)
+    # ---------------------------------------
+    if prompt == "Product-wise Utilization":
+
+        x_col = df.columns[0]  # FSPRODUCT
+
+        df_melt = df.melt(
+            id_vars=x_col,
+            value_vars=["ED Visits", "IP Visits"],
+            var_name="Metric",
+            value_name="Value"
+        )
+
+        return px.bar(
+            df_melt,
+            x=x_col,
+            y="Value",
+            color="Metric",
+            barmode="group",
+            title=prompt
+        )
+
+    # ---------------------------------------
     # 📈 GENERIC TIME SERIES
     # ---------------------------------------
     if "MONTH" in cols:
+
         y_cols = [c for c in cols if c != "MONTH"]
 
         return px.line(
